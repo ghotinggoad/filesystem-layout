@@ -1,0 +1,31 @@
+- name: Create Temporary Target Mounts
+  become: true
+  ansible.builtin.file:
+    path: "/mnt{{ item.value.target }}"
+    state: directory
+  loop: "{{ partitions | dict2items }}"
+
+- name: Mount New Partitions to Temporary Targets
+  become: true
+  ansible.posix.mount:
+    path: "/mnt{{ item.value.target }}"
+    src: "LABEL={{ item.key }}"
+    fstype: "{{ item.value.fstype }}"
+    opts: "defaults"
+    state: ephemeral
+  loop: "{{ partitions | dict2items }}"
+
+- name: Migrate Files into New Partitions
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ item.value.target }}/"
+    dest: "/mnt{{ item.value.target }}/"
+    archive: true
+    rsync_opts:
+      - "--acls"
+      - "--hard-links"
+      - "--numeric-ids"
+      - "--one-file-system"
+      - "--xattrs"
+  delegate_to: "{{ inventory_hostname }}"
+  loop: "{{ partitions | dict2items }}"

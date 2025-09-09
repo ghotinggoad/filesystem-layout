@@ -1,0 +1,16 @@
+---
+- name: Disk Partitioning
+  hosts: all
+  tasks:
+    - name: Bootstrap
+      ansible.builtin.include_tasks: bootstrap.yml
+
+    - name: Add New Partitions
+      ansible.builtin.import_tasks: partition.yml
+
+    - name: Migration
+      when: item.value.migration
+      ansible.builtin.import_tasks: migration.yml
+
+    - name: Cleanup
+      ansible.builtin.include_tasks: cleanup.yml
