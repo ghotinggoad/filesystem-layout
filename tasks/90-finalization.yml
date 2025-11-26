@@ -1,0 +1,17 @@
+---
+- name: Print Filesystem Layouts
+  block:
+    - name: Get Devices
+      ansible.builtin.command: lsblk
+      register: devices
+      changed_when: false
+
+    - name: Print Devices
+      ansible.builtin.debug:
+        var: devices.stdout_lines
+
+- name: Remove Installed Packages
+  ansible.builtin.package:
+    name: "{{ missing_packages }}"
+    state: absent
+  when: missing_packages | length > 0

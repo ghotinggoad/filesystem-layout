@@ -1,5 +1,0 @@
-- name: Remove Installed Packages
-  ansible.builtin.package:
-    name: "{{ missing_packages }}"
-    state: absent
-  when: missing_packages | length > 0

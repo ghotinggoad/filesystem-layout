@@ -1,0 +1,71 @@
+---
+- name: Provision and Mount tmpfs Mounts
+  block:
+    - name: Create tmpfs Mount Targets
+      become: true
+      ansible.builtin.file:
+        path: "{{ item.value.mount_target }}"
+        state: directory
+      loop: "{{ tmpfs_mounts | dict2items }}"
+
+    - name: Mount tmpfs
+      become: true
+      ansible.posix.mount:
+        path: "{{ item.value.mount_target }}"
+        src: tmpfs
+        fstype: tmpfs
+        opts: "{{ item.value.mount_options }},size={{ item.value.size }}G"
+        state: present
+      loop: "{{ tmpfs_mounts | dict2items }}"
+
+- name: Provision Persistent Mounts
+  block:
+    - name: Create New Partitions
+      become: true
+      community.general.parted:
+        device: "{{ item.value.path }}"
+        label: gpt
+        number: 1
+        state: present
+        part_start: 1MiB
+        part_end: 100%
+      loop: "{{ data_vdisks | dict2items }}"
+
+    - name: Create Volume Groups in Partitions
+      become: true
+      community.general.lvg:
+        vg: "vg_{{ item.key }}"
+        pvs: "{{ item.value.path }}1"
+      loop: "{{ data_vdisks | dict2items }}"
+
+    - name: Create Logical Volumes in Volume Groups
+      become: true
+      community.general.lvol:
+        vg: "vg_{{ item.value.vdisk_name }}"
+        lv: "lv_{{ item.key }}"
+        size: "{{ item.value.size }}G"
+      loop: "{{ lvs | dict2items }}"
+
+    - name: Create Filesystems in Logical Volumes
+      become: true
+      community.general.filesystem:
+        dev: "/dev/vg_{{ item.value.vdisk_name }}/lv_{{ item.key }}"
+        fstype: "{{ item.value.fstype }}"
+      loop: "{{ lvs | dict2items }}"
+
+    - name: Create Logical Volumes Mount Targets
+      become: true
+      ansible.builtin.file:
+        path: "{{ item.value.mount_target }}"
+        state: directory
+      loop: "{{ lvs | dict2items }}"
+
+    - name: Add Logical Volumes to fstab
+      become: true
+      ansible.posix.mount:
+        path: "{{ item.value.mount_target }}"
+        src: "/dev/vg_{{ item.value.vdisk_name }}/lv_{{ item.key }}"
+        fstype: "{{ item.value.fstype }}"
+        opts: "{{ item.value.mount_options }}"
+        state: present
+      loop: "{{ lvs | dict2items }}"
