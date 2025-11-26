@@ -1,0 +1,28 @@
+---
+- name: Temporarily Install Required Packages
+  vars:
+    required_packages:
+      - e2fsprogs
+      - lvm2
+      - parted
+      - xfsprogs
+  block:
+    - name: Get Installed Packages
+      ansible.builtin.package_facts:
+        manager: auto
+        strategy: all
+
+    - name: Get Missing Packages
+      ansible.builtin.set_fact:
+        missing_packages: "{{ required_packages | difference(ansible_facts.packages.keys() | list) }}"
+
+    - name: Install Missing Packages
+      become: true
+      when: missing_packages | length > 0
+      ansible.builtin.package:
+        name: "{{ missing_packages }}"
+        state: present
+
+- name: Create Logical Volumes Iterable
+  ansible.builtin.set_fact:
+    lvs: "{{ data_vdisks | to_lvs }}"

@@ -1,0 +1,43 @@
+{
+  "all": {
+    "children": {
+      "ica": {
+        "hosts": {
+          "ica": {
+            "ansible_host": "10.88.33.9",
+            "ansible_ssh_common_args": "-o StrictHostKeyChecking=accept-new",
+            "ansible_user": "ansible"
+          }
+        },
+        "vars": {
+          "data_vdisks": {
+            "cis": {
+              "path": "/dev/sdb",
+              "persistent_mounts": {
+                "data": {
+                  "size": 16,
+                  "partitions": {
+                    "opt": {
+                      "fstype": "ext4",
+                      "mount_options": "default",
+                      "mount_target": "/opt",
+                      "size": 16
+                    }
+                  }
+                }
+              },
+              "size": 16
+            }
+          },
+          "tmpfs_mounts": {
+            "tmp": {
+              "mount_options": "defaults",
+              "mount_target": "/tmp",
+              "size": "2"
+            }
+          }
+        }
+      }
+    }
+  }
+}

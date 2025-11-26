@@ -1,2 +1,3 @@
-inventory.ini
+filter_plugins/__pycache__
 *.json
+!sample_inventory.json

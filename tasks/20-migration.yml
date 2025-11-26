@@ -1,0 +1,45 @@
+---
+- name: Create Temporary Logical Volumes Mount Targets
+  become: true
+  ansible.builtin.file:
+    path: "/mnt{{ item.value.mount_target }}"
+    state: directory
+  loop: "{{ lvs | dict2items }}"
+
+- name: Mount Temporary Mount Targets
+  become: true
+  ansible.posix.mount:
+    path: "/mnt{{ item.value.mount_target }}"
+    src: "/dev/vg_{{ item.value.vdisk_name }}/lv_{{ item.key }}"
+    fstype: "{{ item.value.fstype }}"
+    opts: "{{ item.value.mount_options }}"
+    state: ephemeral
+  loop: "{{ lvs | dict2items }}"
+
+- name: Migrate Files into New Partitions
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ item.value.mount_target }}/"
+    dest: "/mnt{{ item.value.mount_target }}/"
+    archive: true
+    rsync_opts:
+      - "--acls"
+      - "--hard-links"
+      - "--numeric-ids"
+      - "--one-file-system"
+      - "--xattrs"
+  loop: "{{ lvs | dict2items }}"
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: Reboot to Remount fstab
+  become: true
+  ansible.builtin.reboot:
+    connect_timeout: 5
+    reboot_timeout: 180
+
+- name: Remove Temporary Target Mounts
+  become: true
+  ansible.builtin.file:
+    path: "/mnt{{ item.value.mount_target }}"
+    state: absent
+  loop: "{{ lvs | dict2items }}"
